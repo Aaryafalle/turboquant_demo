@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TurboQuant Benchmark Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080c10;
+  --surface: #0f1419;
+  --surface2: #161d27;
+  --border: #1e2d3d;
+  --text: #cdd9e5;
+  --muted: #5c7a96;
+  --accent: #4d9de0;
+  --green: #39d353;
+  --amber: #e3b341;
+  --purple: #9d6edd;
+  --red: #f14c4c;
+  --turbo-glow: rgba(157,110,221,.25);
+  --font-sans: 'Space Grotesk', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --radius: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* ── Hero header ─── */
+.hero {
+  background: linear-gradient(135deg, #0d1a2d 0%, #0f1f38 40%, #13102a 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 2.5rem 2rem 2rem;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content:'';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,transparent 40px,
+    rgba(77,157,224,.025) 40px,rgba(77,157,224,.025) 41px
+  );
+  pointer-events: none;
+}
+.hero-inner { max-width: 1200px; margin: 0 auto; position: relative; }
+.hero-badge {
+  display: inline-block;
+  background: rgba(157,110,221,.15);
+  border: 1px solid rgba(157,110,221,.4);
+  color: var(--purple);
+  font-size: .72rem;
+  font-family: var(--font-mono);
+  letter-spacing: .12em;
+  padding: .25rem .75rem;
+  border-radius: 2px;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+.hero h1 {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 700;
+  line-height: 1.1;
+  color: #fff;
+  margin-bottom: .5rem;
+}
+.hero h1 span { color: var(--accent); }
+.hero .subtitle { color: var(--muted); font-size: .9rem; max-width: 560px; line-height: 1.6; }
+.hero-meta {
+  margin-top: 1.5rem;
+  display: flex; gap: 1.5rem; flex-wrap: wrap;
+}
+.meta-chip {
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: .3rem .8rem;
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  color: var(--muted);
+}
+.meta-chip strong { color: var(--text); }
+
+/* ── Layout ─── */
+.main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+/* ── Stat cards ─── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: border-color .2s, transform .2s;
+}
+.stat-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.stat-card.turbo {
+  border-color: rgba(157,110,221,.5);
+  background: linear-gradient(135deg, #0f1419, #130e20);
+}
+.stat-card.turbo::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--purple), var(--accent));
+}
+.sc-label {
+  font-size: .7rem; font-family: var(--font-mono); letter-spacing: .08em;
+  color: var(--muted); text-transform: uppercase; margin-bottom: .5rem;
+}
+.sc-value {
+  font-size: 1.9rem; font-weight: 700;
+  color: var(--text); line-height: 1;
+}
+.sc-value.turbo-val { color: var(--purple); }
+.sc-unit { font-size: .9rem; color: var(--muted); font-weight: 400; }
+.sc-sub {
+  margin-top: .4rem; font-size: .72rem; color: var(--muted);
+}
+.sc-badge {
+  display: inline-block;
+  margin-top: .6rem;
+  padding: .1rem .5rem;
+  border-radius: 2px;
+  font-size: .68rem;
+  font-family: var(--font-mono);
+}
+.sc-badge.new  { background: rgba(157,110,221,.15); color: var(--purple); }
+.sc-badge.std  { background: rgba(57,211,83,.1);   color: var(--green); }
+
+/* ── Charts ─── */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+@media (max-width: 740px) { .charts-grid { grid-template-columns: 1fr; } }
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+.chart-card h3 {
+  font-size: .8rem; font-family: var(--font-mono); letter-spacing: .08em;
+  color: var(--muted); text-transform: uppercase; margin-bottom: 1.25rem;
+}
+canvas { width: 100% !important; height: 260px !important; }
+
+/* ── Table ─── */
+.table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+.table-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: .78rem; font-family: var(--font-mono); letter-spacing: .08em;
+  color: var(--muted); text-transform: uppercase;
+}
+table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+th {
+  background: var(--surface2);
+  color: var(--muted);
+  padding: .6rem 1rem;
+  text-align: left;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+td { padding: .65rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(77,157,224,.04); }
+.tag {
+  display: inline-block;
+  padding: .15rem .55rem;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: .72rem;
+}
+.tag-turbo { background: rgba(157,110,221,.15); color: var(--purple); border: 1px solid rgba(157,110,221,.3); }
+.tag-std   { background: rgba(77,157,224,.1);  color: var(--accent);  border: 1px solid rgba(77,157,224,.2); }
+.speedup-pill {
+  display: inline-block;
+  background: rgba(157,110,221,.12);
+  border: 1px solid rgba(157,110,221,.25);
+  color: var(--purple);
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  padding: .1rem .5rem;
+  border-radius: 20px;
+}
+
+/* ── PPL section ─── */
+.ppl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.ppl-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  text-align: center;
+}
+.ppl-card.ok   { border-color: rgba(57,211,83,.3);  }
+.ppl-card.warn { border-color: rgba(227,179,65,.3);  }
+.ppl-value { font-size: 2rem; font-weight: 700; font-family: var(--font-mono); }
+.ppl-value.green { color: var(--green); }
+.ppl-value.amber { color: var(--amber); }
+.ppl-delta { font-size: .75rem; color: var(--muted); margin-top: .25rem; }
+.ppl-label { font-size: .7rem; font-family: var(--font-mono); color: var(--muted); margin-bottom: .4rem; text-transform: uppercase; }
+
+/* ── Footer ─── */
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 1.5rem 2rem;
+  text-align: center;
+  font-size: .75rem;
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+.footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">ICLR 2026 · Google Research</div>
+    <h1>⚡ <span>TurboQuant</span> Benchmark</h1>
+    <p class="subtitle">
+      PolarQuant + QJL KV-cache compression — local AI inference comparison
+      across 5 cache modes from standard 8-bit to extreme 2-bit TurboQuant.
+    </p>
+    <div class="hero-meta">
+      <div class="meta-chip">Model: <strong>Qwen3-1.7B-Q4_K_M</strong></div>
+      <div class="meta-chip">Backend: <strong>llama.cpp + turboquant_plus</strong></div>
+      <div class="meta-chip" id="tsChip">Ran: <strong id="runTs">—</strong></div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Stat cards -->
+  <div class="stat-grid" id="statGrid"></div>
+
+  <!-- Charts -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3>Decode Throughput (tokens/sec)</h3>
+      <canvas id="decodeChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>KV Cache Compression Ratio</h3>
+      <canvas id="compressChart"></canvas>
+    </div>
+  </div>
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3>Prefill Throughput (tokens/sec)</h3>
+      <canvas id="prefillChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>RAM Usage by Cache Mode</h3>
+      <canvas id="ramChart"></canvas>
+    </div>
+  </div>
+
+  <!-- PPL section -->
+  <div class="table-header" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0;margin-bottom:0">
+    PERPLEXITY — Accuracy Preservation (lower = better, ±0.1 of q8_0 = zero-loss)
+  </div>
+  <div class="ppl-grid" id="pplGrid" style="margin-top:0;padding: 1rem;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);margin-bottom:2rem"></div>
+
+  <!-- Results table -->
+  <div class="table-card">
+    <div class="table-header">Raw Benchmark Results</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Cache Mode</th>
+          <th>Prompt</th>
+          <th>Prefill t/s</th>
+          <th>Decode t/s</th>
+          <th>vs q8_0</th>
+          <th>KV Compress</th>
+          <th>Peak RAM</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="footer">
+  TurboQuant · <a href="https://arxiv.org/abs/2504.19874" target="_blank">arXiv:2504.19874</a> ·
+  Implementation: <a href="https://github.com/TheTom/turboquant_plus" target="_blank">turboquant_plus</a> ·
+  Run <code>python3 benchmark.py</code> to populate with real data
+</div>
+
+<script>
+// ── Data (replace with real bench_results.json after running benchmark.py) ────
+// This dashboard shows realistic simulated data.
+// After running benchmark.py, open results/report.html for live data.
+
+const BENCH_DATA = [
+  // short context
+  { cache_type:"q8_0",   prompt_id:"short",  ctx_len:512,  prefill_tps:3240, decode_tps:45.2, peak_mem_mb:2100, compress_ratio:1.0 },
+  { cache_type:"q4_0",   prompt_id:"short",  ctx_len:512,  prefill_tps:3180, decode_tps:54.8, peak_mem_mb:1680, compress_ratio:2.0 },
+  { cache_type:"turbo4", prompt_id:"short",  ctx_len:512,  prefill_tps:3190, decode_tps:60.1, peak_mem_mb:1420, compress_ratio:3.8 },
+  { cache_type:"turbo3", prompt_id:"short",  ctx_len:512,  prefill_tps:3210, decode_tps:67.4, peak_mem_mb:1240, compress_ratio:4.6 },
+  { cache_type:"turbo2", prompt_id:"short",  ctx_len:512,  prefill_tps:3250, decode_tps:71.8, peak_mem_mb:1050, compress_ratio:6.4 },
+  // medium context
+  { cache_type:"q8_0",   prompt_id:"medium", ctx_len:2048, prefill_tps:2950, decode_tps:38.1, peak_mem_mb:3800, compress_ratio:1.0 },
+  { cache_type:"q4_0",   prompt_id:"medium", ctx_len:2048, prefill_tps:2940, decode_tps:48.6, peak_mem_mb:2940, compress_ratio:2.0 },
+  { cache_type:"turbo4", prompt_id:"medium", ctx_len:2048, prefill_tps:2960, decode_tps:56.2, peak_mem_mb:2320, compress_ratio:3.8 },
+  { cache_type:"turbo3", prompt_id:"medium", ctx_len:2048, prefill_tps:2970, decode_tps:64.5, peak_mem_mb:1980, compress_ratio:4.6 },
+  { cache_type:"turbo2", prompt_id:"medium", ctx_len:2048, prefill_tps:2980, decode_tps:69.3, peak_mem_mb:1620, compress_ratio:6.4 },
+];
+
+const PPL_DATA = [
+  { cache_type:"q8_0",   ppl:12.310 },
+  { cache_type:"q4_0",   ppl:12.452 },
+  { cache_type:"turbo4", ppl:12.334 },
+  { cache_type:"turbo3", ppl:12.368 },
+  { cache_type:"turbo2", ppl:12.540 },
+];
+
+// ── Config ─────────────────────────────────────────────────────────────────────
+const COLORS = {
+  q8_0:   '#4d9de0',
+  q4_0:   '#39d353',
+  turbo4: '#e3b341',
+  turbo3: '#9d6edd',
+  turbo2: '#f14c4c',
+};
+const LABELS = {
+  q8_0:   '8-bit Baseline',
+  q4_0:   '4-bit Standard',
+  turbo4: 'TQ 4-bit (3.8×)',
+  turbo3: 'TQ 3-bit (4.6×)',
+  turbo2: 'TQ 2-bit (6.4×)',
+};
+const COMPRESS = { q8_0:1, q4_0:2, turbo4:3.8, turbo3:4.6, turbo2:6.4 };
+const MODES = ['q8_0','q4_0','turbo4','turbo3','turbo2'];
+const PROMPTS = ['short','medium'];
+
+document.getElementById('runTs').textContent = new Date().toLocaleString();
+
+// ── Stat cards ─────────────────────────────────────────────────────────────────
+const avgFor = (mode, field) => {
+  const vals = BENCH_DATA.filter(r => r.cache_type === mode).map(r => r[field]).filter(v => v > 0);
+  return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+};
+const baselineDecode = avgFor('q8_0','decode_tps');
+
+const statGrid = document.getElementById('statGrid');
+for (const m of MODES) {
+  const isTurbo = m.startsWith('turbo');
+  const decode = avgFor(m,'decode_tps');
+  const mem = avgFor(m,'peak_mem_mb');
+  const div = document.createElement('div');
+  div.className = `stat-card${isTurbo?' turbo':''}`;
+  const speedup = decode/baselineDecode;
+  div.innerHTML = `
+    <div class="sc-label">${LABELS[m]}</div>
+    <div class="sc-value ${isTurbo?'turbo-val':''}">${decode.toFixed(1)}<span class="sc-unit"> t/s</span></div>
+    <div class="sc-sub">avg decode · ${mem.toFixed(0)} MB RAM</div>
+    <div>
+      <span class="sc-badge ${isTurbo?'new':'std'}">${isTurbo?'TurboQuant':'Standard'}</span>
+      ${isTurbo ? `<span class="sc-badge new">${COMPRESS[m]}× KV</span>` : ''}
+    </div>
+  `;
+  statGrid.appendChild(div);
+}
+
+// ── Chart defaults ──────────────────────────────────────────────────────────────
+const chartDefaults = {
+  responsive: true,
+  animation: { duration: 800, easing: 'easeInOutQuart' },
+  plugins: {
+    legend: { labels: { color:'#5c7a96', font: { family:'IBM Plex Mono', size:11 }, boxWidth:12 } }
+  },
+  scales: {
+    x: { ticks:{ color:'#5c7a96', font:{family:'IBM Plex Mono',size:11} }, grid:{ color:'#1e2d3d' } },
+    y: { ticks:{ color:'#5c7a96', font:{family:'IBM Plex Mono',size:11} }, grid:{ color:'#1e2d3d' } },
+  }
+};
+
+// ── Decode throughput grouped bar ────────────────────────────────────────────────
+new Chart(document.getElementById('decodeChart'), {
+  type: 'bar',
+  data: {
+    labels: PROMPTS,
+    datasets: MODES.map(m => ({
+      label: LABELS[m],
+      data: PROMPTS.map(p => {
+        const r = BENCH_DATA.find(d => d.cache_type===m && d.prompt_id===p);
+        return r ? r.decode_tps : 0;
+      }),
+      backgroundColor: COLORS[m]+'99',
+      borderColor: COLORS[m],
+      borderWidth: 1.5,
+      borderRadius: 3,
+    })),
+  },
+  options: { ...chartDefaults,
+    scales: { ...chartDefaults.scales,
+      y: { ...chartDefaults.scales.y,
+        title: { display:true, text:'tokens/sec', color:'#5c7a96', font:{family:'IBM Plex Mono',size:11} }
+      }
+    }
+  }
+});
+
+// ── Compression bar ───────────────────────────────────────────────────────────
+new Chart(document.getElementById('compressChart'), {
+  type: 'bar',
+  data: {
+    labels: MODES.map(m => LABELS[m]),
+    datasets: [{
+      label: 'KV Cache Compression ×',
+      data: MODES.map(m => COMPRESS[m]),
+      backgroundColor: MODES.map(m => COLORS[m]+'99'),
+      borderColor: MODES.map(m => COLORS[m]),
+      borderWidth: 1.5,
+      borderRadius: 3,
+    }],
+  },
+  options: { ...chartDefaults,
+    plugins: { ...chartDefaults.plugins, legend: { display: false } },
+    scales: { ...chartDefaults.scales,
+      y: { ...chartDefaults.scales.y,
+        title: { display:true, text:'Compression ratio ×', color:'#5c7a96', font:{family:'IBM Plex Mono',size:11} }
+      }
+    }
+  }
+});
+
+// ── Prefill bar ─────────────────────────────────────────────────────────────────
+new Chart(document.getElementById('prefillChart'), {
+  type: 'bar',
+  data: {
+    labels: PROMPTS,
+    datasets: MODES.map(m => ({
+      label: LABELS[m],
+      data: PROMPTS.map(p => {
+        const r = BENCH_DATA.find(d => d.cache_type===m && d.prompt_id===p);
+        return r ? r.prefill_tps : 0;
+      }),
+      backgroundColor: COLORS[m]+'99',
+      borderColor: COLORS[m],
+      borderWidth: 1.5,
+      borderRadius: 3,
+    })),
+  },
+  options: { ...chartDefaults,
+    scales: { ...chartDefaults.scales,
+      y: { ...chartDefaults.scales.y,
+        title: { display:true, text:'tokens/sec', color:'#5c7a96', font:{family:'IBM Plex Mono',size:11} }
+      }
+    }
+  }
+});
+
+// ── RAM bar ─────────────────────────────────────────────────────────────────────
+new Chart(document.getElementById('ramChart'), {
+  type: 'bar',
+  data: {
+    labels: MODES.map(m => LABELS[m]),
+    datasets: [{
+      label: 'Peak RAM (MB)',
+      data: MODES.map(m => avgFor(m,'peak_mem_mb')),
+      backgroundColor: MODES.map(m => COLORS[m]+'99'),
+      borderColor: MODES.map(m => COLORS[m]),
+      borderWidth: 1.5,
+      borderRadius: 3,
+    }],
+  },
+  options: { ...chartDefaults,
+    plugins: { ...chartDefaults.plugins, legend: { display: false } },
+    scales: { ...chartDefaults.scales,
+      y: { ...chartDefaults.scales.y,
+        title: { display:true, text:'MB', color:'#5c7a96', font:{family:'IBM Plex Mono',size:11} }
+      }
+    }
+  }
+});
+
+// ── PPL cards ───────────────────────────────────────────────────────────────────
+const basePPL = PPL_DATA.find(d => d.cache_type==='q8_0')?.ppl || 0;
+const pplGrid = document.getElementById('pplGrid');
+for (const d of PPL_DATA) {
+  const delta = d.ppl - basePPL;
+  const isOk = Math.abs(delta) < 0.1;
+  const div = document.createElement('div');
+  div.className = `ppl-card ${isOk?'ok':'warn'}`;
+  div.innerHTML = `
+    <div class="ppl-label">${LABELS[d.cache_type]||d.cache_type}</div>
+    <div class="ppl-value ${isOk?'green':'amber'}">${d.ppl.toFixed(3)}</div>
+    <div class="ppl-delta">${d.cache_type==='q8_0' ? 'baseline' : `Δ${delta>=0?'+':''}${delta.toFixed(3)} ${isOk?'✅ zero-loss':'⚠ marginal'}`}</div>
+  `;
+  pplGrid.appendChild(div);
+}
+
+// ── Results table ───────────────────────────────────────────────────────────────
+const tbody = document.getElementById('tbody');
+for (const r of BENCH_DATA) {
+  const isTurbo = r.cache_type.startsWith('turbo');
+  const baseRow = BENCH_DATA.find(d => d.cache_type==='q8_0' && d.prompt_id===r.prompt_id);
+  const speedup = baseRow ? (r.decode_tps/baseRow.decode_tps) : 1;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><span class="tag ${isTurbo?'tag-turbo':'tag-std'}">${r.cache_type}</span></td>
+    <td style="font-family:var(--font-mono);font-size:.78rem">${r.prompt_id} <span style="color:var(--muted)">(ctx ${r.ctx_len})</span></td>
+    <td style="font-family:var(--font-mono)">${r.prefill_tps.toFixed(0)}</td>
+    <td style="font-family:var(--font-mono);color:${isTurbo?'var(--purple)':'var(--green)'};font-weight:600">${r.decode_tps.toFixed(1)}</td>
+    <td><span class="speedup-pill">${speedup>=1?'+':''}${((speedup-1)*100).toFixed(0)}%</span></td>
+    <td style="font-family:var(--font-mono);color:${isTurbo?'var(--purple)':'var(--muted)'};font-weight:${isTurbo?'600':'400'}">${r.compress_ratio}×</td>
+    <td style="font-family:var(--font-mono)">${r.peak_mem_mb.toFixed(0)} MB</td>
+  `;
+  tbody.appendChild(tr);
+}
+</script>
+</body>
+</html>
